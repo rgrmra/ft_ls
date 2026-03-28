@@ -6,7 +6,7 @@
 /*   By: rde-mour <rde-mour@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 16:00:38 by rde-mour          #+#    #+#             */
-/*   Updated: 2026/03/22 17:57:55 by rde-mour         ###   ########.org.br   */
+/*   Updated: 2026/03/28 17:07:28 by rde-mour         ###   ########.org.br   */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,19 +29,11 @@ static const char	*basename(const char *file_path)
 
 t_file	*list_new(const char *file_path)
 {
-	struct stat	file_stat;
 	t_file		*file;
 
-	if (lstat(file_path, &file_stat) == -1)
-	{
-		// remove printf
-		printf("ft_ls: cannot access '%s': %s\n", file_path,  strerror(errno));
-		return (NULL);
-	}
 	file = (t_file *) malloc(sizeof(t_file));
 	if (!file)
 	{
-		// remove printf
 		printf("ft_ls: cannot access '%s': %s\n", file_path, strerror(errno));
 		return (NULL);
 	}
@@ -49,7 +41,6 @@ t_file	*list_new(const char *file_path)
 	file->name = strdup(basename(file_path));
 	//	change strdup to ft_strdup
 	file->path = strdup(file_path);
-	file->stat = file_stat;
 	file->next = NULL;
 	return (file);
 }

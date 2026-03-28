@@ -6,7 +6,7 @@
 #    By: rde-mour <rde-mour@student.42sp.org.br>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/02/28 10:49:37 by rde-mour          #+#    #+#              #
-#    Updated: 2026/03/08 18:12:57 by rde-mour         ###   ########.org.br    #
+#    Updated: 2026/03/28 18:09:28 by rde-mour         ###   ########.org.br    #
 #                                                                              #
 # **************************************************************************** #
 
@@ -28,6 +28,7 @@ FILES				:= main.c \
 					   list/list_clear.c \
 					   list/list_last.c \
 					   list/list_new.c \
+					   list/list_size.c \
 					   sort/sort_list.c \
 					   sort/sort_name.c \
 					   sort/sort_size.c \
@@ -44,7 +45,7 @@ OBJSDIR				:= ./objs
 SRCS				:= $(FILES:%.c=$(SRCSDIR)/%.o)
 OBJS				:= $(FILES:%.c=$(OBJSDIR)/%.o)
 
-CFLAGS				:= -Wall -Wextra -Werror -g3
+CFLAGS				:= -Wall -Wextra -Werror -g3 -O3
 
 COMPILER			:= cc
 

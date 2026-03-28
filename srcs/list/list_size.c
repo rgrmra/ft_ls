@@ -1,26 +1,29 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   list.h                                             :+:      :+:    :+:   */
+/*   list_size.c                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: rde-mour <rde-mour@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/08 16:02:49 by rde-mour          #+#    #+#             */
-/*   Updated: 2026/03/28 18:06:56 by rde-mour         ###   ########.org.br   */
+/*   Created: 2026/03/28 18:04:16 by rde-mour          #+#    #+#             */
+/*   Updated: 2026/03/28 18:08:31 by rde-mour         ###   ########.org.br   */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef LIST_H
-# define LIST_H
+#include <ft_ls.h>
+#include <stddef.h>
 
-# include "ft_ls.h"
-# include <stddef.h>
+size_t	list_size(t_file *file_list)
+{
+	t_file	*file;
+	size_t	size;
 
-void	list_add_back(t_file **file_list, t_file *list);
-void	list_add_front(t_file **file_list, t_file *list);
-void	list_clear(t_file **file_list);
-t_file	*list_last(t_file *file_list);
-t_file	*list_new(const char *file_path);
-size_t	list_size(t_file *file_list);
-
-#endif
+	size = 0;
+	file = file_list;
+	while (file)
+	{
+		size++;
+		file = file->next;
+	}
+	return (size);
+}

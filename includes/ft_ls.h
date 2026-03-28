@@ -6,7 +6,7 @@
 /*   By: rde-mour <rde-mour@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 18:17:54 by rde-mour          #+#    #+#             */
-/*   Updated: 2026/03/22 18:09:20 by rde-mour         ###   ########.org.br   */
+/*   Updated: 2026/03/28 17:54:17 by rde-mour         ###   ########.org.br   */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 
 # include <sys/stat.h>
 
+# define EXIT_FLAG_ERROR 2
 # define SYMLINK_MAX_SIZE 256
 
 typedef struct s_file
@@ -47,6 +48,7 @@ typedef enum e_flag
 	FT_LS_LOWER_F = 1 << 6,
 	FT_LS_LOWER_G = 1 << 6,
 	FT_LS_LOWER_D = 1 << 8,
+	FT_LS_ERROR = 1 << 9,
 	
 }	t_flag;
 

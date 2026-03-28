@@ -6,12 +6,13 @@
 /*   By: rde-mour <rde-mour@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/07 17:21:04 by rde-mour          #+#    #+#             */
-/*   Updated: 2026/03/22 18:49:56 by rde-mour         ###   ########.org.br   */
+/*   Updated: 2026/03/28 19:03:49 by rde-mour         ###   ########.org.br   */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ft_ls.h"
 #include "list.h"
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -162,28 +163,21 @@ void	parse_flags(char *entries, t_flag *flags)
 			*flags |= FT_LS_LOWER_G;
 		else if (*entries == 'd')
 			*flags |= FT_LS_LOWER_D;
+		else
+		{
+			printf("ft_ls: invalid option -- '%c'\n", *entries);
+			*flags |= FT_LS_ERROR;
+			break;
+		}
 	}
 }
 
-t_file	*parse(char **entries, t_flag *flags)
+struct stat	*get_stat(t_file *file)
 {
-	t_file	*file_list;
-	t_file	*file;
-	char	*entry;
-
-	file_list = NULL;
-	while (*(++entries))
-	{
-		entry = *entries;
-		if (entry[0] == '-' && entry[1] != '\0')
-		{
-			parse_flags(*entries, flags);
-			continue ;
-		}
-		file = list_new(*entries);
-		list_add_back(&file_list, file);
-	}
-	return (file_list);
+	if (lstat(file->path, &file->stat) == -1)
+		// remove printf
+		printf("ft_ls: cannot access '%s': %s\n", file->path, strerror(errno));
+	return (&file->stat);
 }
 
 t_file	*get_dir_files(const char *file_path)
@@ -207,11 +201,39 @@ t_file	*get_dir_files(const char *file_path)
 			continue ;
 		sprintf(buffer, "%s/%s", file_path, file_data->d_name);
 		file = list_new(buffer);
-		list_add_back(&file_list, file);
+		if (file)
+		{
+			get_stat(file);
+			list_add_back(&file_list, file);
+		}
 	}
 	closedir(directory);
 	return (file_list);
 };
+
+t_file	*parse(char **entries, t_flag *flags)
+{
+	t_file	*file_list;
+	t_file	*file;
+	char	*entry;
+
+	file_list = NULL;
+	while (*(++entries))
+	{
+		entry = *entries;
+		if (entry[0] == '-' && entry[1] != '\0')
+		{
+			parse_flags(*entries, flags);
+			continue ;
+		}
+		file = list_new(*entries);
+		if (file)
+			list_add_back(&file_list, file);
+	}
+	if (!file_list)
+		file_list = list_new(".");
+	return (file_list);
+}
 
 size_t	get_total_bytes(t_file *file_list)
 {
@@ -252,37 +274,68 @@ void	test(t_file *file)
 		free(link_name);
 }
 
-void	print(t_file *file_list)
+void	print(t_file *file_last, t_file *file_list, t_flag *flags)
 {
 	t_file	*file;
 
-	if (!file_list)
-		return ;
-	printf("total %lu\n", get_total_bytes(file_list));
+	//if (!file_list)
+	//	return ;
 	file = file_list;
+	if (*flags & ~(FT_LS_LOWER_A))
+		file = sort_list(file_list, SORT_NAME);
+	//if (S_ISDIR(file->stat.st_mode) && list_size(file_list) > 1)
+	//	printf("%s:\n", file->path);
+	//if (file && file_last->path != file->path)
+	if (list_size(file_last) > 1 || *flags & FT_LS_UPPER_R)
+		printf("%s:\n", file_last->path);
+	printf("total %lu\n", get_total_bytes(file));
 	while(file)
 	{
 		test(file);
 		//printf("%s  ", file->name);
 		file = file->next;
 	}
-		printf("\n");
+	printf("\n");
+	file = file_list;
+	while (file)
+	{
+		//printf("test: %s:\n", file->path);
+		if (S_ISDIR(file->stat.st_mode) && (*flags & FT_LS_UPPER_R))
+		{
+			print(file, get_dir_files(file->path), flags);
+		}
+		file = file->next;
+	}
 }
 
 int	main(int argc, char **argv)
 {
+	t_file	*file;
 	t_file	*files_list;
 	t_flag	flags;
 
-	files_list = NULL;
-	if (argc > 1)
-		files_list = parse(argv, &flags);
-	else
-		files_list = get_dir_files(".");
-	printf("flags: %d\n", flags);
-
-	files_list = sort_list(files_list, SORT_VERSION);
-	print(files_list);
+	(void) argc;
+	flags = 0;
+	files_list = parse(argv, &flags);
+	if (flags == FT_LS_ERROR)
+	{
+		list_clear(&files_list);
+		return (EXIT_FLAG_ERROR);
+	}
+	file = files_list;
+	while (file)
+	{
+		get_stat(file);
+		if (S_ISDIR(file->stat.st_mode))
+		{
+			//if (flags & FT_LS_UPPER_R)
+			//	printf("%s:\n", file->path);
+			print(file, get_dir_files(file->path), &flags);
+		}
+		else
+			print(NULL, file, &flags);
+		file = file->next;
+	}
 	list_clear(&files_list);
 	return (EXIT_SUCCESS);
 }
