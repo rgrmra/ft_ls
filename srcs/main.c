@@ -6,7 +6,7 @@
 /*   By: rde-mour <rde-mour@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/07 17:21:04 by rde-mour          #+#    #+#             */
-/*   Updated: 2026/03/28 19:03:49 by rde-mour         ###   ########.org.br   */
+/*   Updated: 2026/04/11 17:15:16 by rde-mour         ###   ########.org.br   */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,14 @@
 #include <time.h>
 #include <dirent.h>
 #include "sort.h"
+
+typedef struct s_test
+{
+	int	link;
+	int	user;
+	int	group;
+	int	block;
+}	t_test;
 
 char *get_symlink_name(const char *file_path, struct stat file_stat)
 {
@@ -172,12 +180,15 @@ void	parse_flags(char *entries, t_flag *flags)
 	}
 }
 
-struct stat	*get_stat(t_file *file)
+t_file	*get_stat(t_file *file)
 {
 	if (lstat(file->path, &file->stat) == -1)
+	{
 		// remove printf
 		printf("ft_ls: cannot access '%s': %s\n", file->path, strerror(errno));
-	return (&file->stat);
+		return (NULL);
+	}
+	return (file);
 }
 
 t_file	*get_dir_files(const char *file_path)
@@ -248,8 +259,51 @@ size_t	get_total_bytes(t_file *file_list)
 	return (total_bytes / 2);
 }
 
-void	test(t_file *file)
+int	count_digits(int nbr)
 {
+	int	value;
+
+	value = 0;
+	while (nbr)
+	{
+		nbr /= 10;
+		value++;
+	}
+	printf("value: %d\n", value);
+	return (value);
+}
+
+void	count(t_file *file_list, t_test *test)
+{
+	int		size;
+	t_file	*file;
+
+	file = file_list;
+	while (file)
+	{
+		size = 0;
+		size = strlen(getpwuid(file->stat.st_uid)->pw_name);
+		if (size > test->user)
+			test->user = size;
+		size = 0;
+		size = strlen(getgrgid(file->stat.st_gid)->gr_name);
+		if (size > test->group)
+			test->group = size;
+		size = count_digits(file->stat.st_nlink);
+		if (size > test->link)
+			test->link = size;
+		size = count_digits(file->stat.st_size);
+		if (size > test->block)
+			test->block = size;
+		file = file->next;
+	}
+
+	printf("%d %d\n", test->user, test->group);
+}
+
+void	test(t_file *file, t_test ctest)
+{
+	char	buffer[10];
 	char	*link_name;
 
 	if (!file)
@@ -258,10 +312,14 @@ void	test(t_file *file)
 	t_time	*time = get_time(file->stat.st_ctime);
 	char	*acl = get_acl(file->stat.st_mode);
 	printf("%s ", acl);
-    printf("%ld ", (long)file->stat.st_nlink);
-    printf("%s ", getpwuid(file->stat.st_uid)->pw_name);
-    printf("%s ", getgrgid(file->stat.st_gid)->gr_name);
-    printf("%ld ", (long)file->stat.st_size);
+	sprintf(buffer, "%%%dld ", ctest.link);
+    printf(buffer, (long)file->stat.st_nlink);
+	sprintf(buffer, "%%-%ds ", ctest.user);
+    printf(buffer, getpwuid(file->stat.st_uid)->pw_name);
+	sprintf(buffer, "%%-%ds ", ctest.group);
+    printf(buffer, getgrgid(file->stat.st_gid)->gr_name);
+	sprintf(buffer, "%%%dld ", ctest.block);
+    printf(buffer, (long)file->stat.st_size);
 	printf("%s %s %s:%s ", time->month, time->day, time->hour, time->minutes);
 	printf("%s ", file->name);
 	if (link_name)
@@ -277,11 +335,13 @@ void	test(t_file *file)
 void	print(t_file *file_last, t_file *file_list, t_flag *flags)
 {
 	t_file	*file;
+	t_test	ctest = {0};
 
 	//if (!file_list)
 	//	return ;
+	count(file_list, &ctest);
 	file = file_list;
-	if (*flags & ~(FT_LS_LOWER_A))
+	//if (*flags & ~(FT_LS_LOWER_A))
 		file = sort_list(file_list, SORT_NAME);
 	//if (S_ISDIR(file->stat.st_mode) && list_size(file_list) > 1)
 	//	printf("%s:\n", file->path);
@@ -291,7 +351,7 @@ void	print(t_file *file_last, t_file *file_list, t_flag *flags)
 	printf("total %lu\n", get_total_bytes(file));
 	while(file)
 	{
-		test(file);
+		test(file, ctest);
 		//printf("%s  ", file->name);
 		file = file->next;
 	}
@@ -301,9 +361,7 @@ void	print(t_file *file_last, t_file *file_list, t_flag *flags)
 	{
 		//printf("test: %s:\n", file->path);
 		if (S_ISDIR(file->stat.st_mode) && (*flags & FT_LS_UPPER_R))
-		{
 			print(file, get_dir_files(file->path), flags);
-		}
 		file = file->next;
 	}
 }
@@ -327,13 +385,9 @@ int	main(int argc, char **argv)
 	{
 		get_stat(file);
 		if (S_ISDIR(file->stat.st_mode))
-		{
-			//if (flags & FT_LS_UPPER_R)
-			//	printf("%s:\n", file->path);
 			print(file, get_dir_files(file->path), &flags);
-		}
 		else
-			print(NULL, file, &flags);
+			print(file, file, &flags);
 		file = file->next;
 	}
 	list_clear(&files_list);
