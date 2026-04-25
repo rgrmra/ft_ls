@@ -6,7 +6,7 @@
 /*   By: rde-mour <rde-mour@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/07 17:21:04 by rde-mour          #+#    #+#             */
-/*   Updated: 2026/04/11 17:15:16 by rde-mour         ###   ########.org.br   */
+/*   Updated: 2026/04/25 17:18:20 by rde-mour         ###   ########.org.br   */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -269,7 +269,6 @@ int	count_digits(int nbr)
 		nbr /= 10;
 		value++;
 	}
-	printf("value: %d\n", value);
 	return (value);
 }
 
@@ -277,16 +276,26 @@ void	count(t_file *file_list, t_test *test)
 {
 	int		size;
 	t_file	*file;
+	struct group	*gid;
+	struct passwd	*uid;
 
 	file = file_list;
 	while (file)
 	{
 		size = 0;
-		size = strlen(getpwuid(file->stat.st_uid)->pw_name);
+		uid = getpwuid(file->stat.st_gid);
+		if (uid)
+			size = strlen(uid->pw_name);
+		else
+			size = count_digits(file->stat.st_uid);
 		if (size > test->user)
 			test->user = size;
 		size = 0;
-		size = strlen(getgrgid(file->stat.st_gid)->gr_name);
+		gid = getgrgid(file->stat.st_gid);
+		if (gid)
+			size = strlen(gid->gr_name);
+		else
+			size = count_digits(file->stat.st_gid);
 		if (size > test->group)
 			test->group = size;
 		size = count_digits(file->stat.st_nlink);
@@ -297,14 +306,14 @@ void	count(t_file *file_list, t_test *test)
 			test->block = size;
 		file = file->next;
 	}
-
-	printf("%d %d\n", test->user, test->group);
 }
 
 void	test(t_file *file, t_test ctest)
 {
 	char	buffer[10];
 	char	*link_name;
+	struct group	*gid;
+	struct passwd	*uid;
 
 	if (!file)
 		return ;
@@ -314,10 +323,29 @@ void	test(t_file *file, t_test ctest)
 	printf("%s ", acl);
 	sprintf(buffer, "%%%dld ", ctest.link);
     printf(buffer, (long)file->stat.st_nlink);
-	sprintf(buffer, "%%-%ds ", ctest.user);
-    printf(buffer, getpwuid(file->stat.st_uid)->pw_name);
+	uid = getpwuid(file->stat.st_uid);
+	if (uid)
+	{
+		sprintf(buffer, "%%-%ds ", ctest.user);
+    	printf(buffer, uid->pw_name);
+	}
+	else
+	{
+		sprintf(buffer, "%%-%dd ", ctest.user);
+		printf(buffer, file->stat.st_uid);
+	}
 	sprintf(buffer, "%%-%ds ", ctest.group);
-    printf(buffer, getgrgid(file->stat.st_gid)->gr_name);
+	gid = getgrgid(file->stat.st_gid);
+	if (gid)
+	{
+		sprintf(buffer, "%%-%ds ", ctest.group);
+		printf(buffer, gid->gr_name);
+	}
+	else
+	{
+		sprintf(buffer, "%%-%dd ", ctest.group);
+		printf(buffer, file->stat.st_gid);
+	}
 	sprintf(buffer, "%%%dld ", ctest.block);
     printf(buffer, (long)file->stat.st_size);
 	printf("%s %s %s:%s ", time->month, time->day, time->hour, time->minutes);
@@ -337,18 +365,15 @@ void	print(t_file *file_last, t_file *file_list, t_flag *flags)
 	t_file	*file;
 	t_test	ctest = {0};
 
-	//if (!file_list)
-	//	return ;
 	count(file_list, &ctest);
-	file = file_list;
 	//if (*flags & ~(FT_LS_LOWER_A))
-		file = sort_list(file_list, SORT_NAME);
-	//if (S_ISDIR(file->stat.st_mode) && list_size(file_list) > 1)
-	//	printf("%s:\n", file->path);
-	//if (file && file_last->path != file->path)
+		file_list = sort_list(file_list, SORT_NAME);
+	file = file_list;
 	if (list_size(file_last) > 1 || *flags & FT_LS_UPPER_R)
 		printf("%s:\n", file_last->path);
 	printf("total %lu\n", get_total_bytes(file));
+	if (!file_list)
+		return;
 	while(file)
 	{
 		test(file, ctest);
